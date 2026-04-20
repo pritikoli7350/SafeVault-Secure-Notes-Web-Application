@@ -35,10 +35,10 @@ README.md
 ## Screenshots
 
 ### Home Page
-![Home](screenshots/home.png)
+![Home](screenshots/homepage.png)
 
 ### Login Page
-![Login](screenshots/login.png)
+![Login](screenshots/index.png)
 
 ### Dashboard
 ![Dashboard](screenshots/dashboard.png)
