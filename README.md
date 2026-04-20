@@ -25,12 +25,24 @@ Database: MongoDB
 ## Project Structure
 
 SafeVault/
-│── BACKEND/
-│── files/
-│── .gitignore
-│── README.md
+BACKEND/
+files/
+screenshots/
+README.md
+.gitignore
 
 ---
+## Screenshots
+
+### Home Page
+![Home](screenshots/home.png)
+
+### Login Page
+![Login](screenshots/login.png)
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+
 
 ## Installation and Setup
 
