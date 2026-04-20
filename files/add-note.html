@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Note | SafeVault</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container" style="margin-top: 60px; width: 480px; max-width: calc(100vw - 40px);">
+
+  <a href="dashboard.html" class="back-link">← Back to Dashboard</a>
+
+  <h2>Add New Note</h2>
+  <p class="subtext">Your note will be encrypted before saving</p>
+
+  <form id="noteForm">
+
+    <div class="field-group">
+      <label class="field-label">Category</label>
+      <select id="category" name="category" class="premium-select">
+        <option value="">Select Category</option>
+        <option value="Personal">Personal</option>
+        <option value="Study">Study</option>
+        <option value="Work">Work</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Title</label>
+      <input type="text" id="title" name="title" placeholder="Enter note title">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Note</label>
+      <textarea id="content" name="content" placeholder="Write your note here..."></textarea>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Encryption Method</label>
+      <select id="encryptionType" name="encryptionType" class="premium-select">
+        <option value="">Select Encryption Method</option>
+        <option value="AES">AES-256 Encryption</option>
+        <option value="CAESAR">Caesar Cipher Encryption</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Attach File</label>
+      <input type="file" id="file" name="file">
+    </div>
+
+    <button type="submit" class="primary-btn">Save Note →</button>
+
+  </form>
+</div>
+
+<script src="toast.js"></script>
+<script>
+document.getElementById("noteForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+
+  const title = document.getElementById("title").value.trim();
+  const content = document.getElementById("content").value.trim();
+  const encryptionType = document.getElementById("encryptionType").value;
+  const category = document.getElementById("category").value;
+  const fileInput = document.getElementById("file");
+
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    toast("Please login first", "warning");
+    window.location.href = "index.html";
+    return;
+  }
+
+  document.querySelector("button[type=submit]").disabled = true;
+
+  const formData = new FormData();
+  formData.append("title", title);
+  formData.append("content", content);
+  formData.append("encryptionType", encryptionType);
+  formData.append("category", category);
+
+  if (fileInput.files.length > 0) {
+    formData.append("file", fileInput.files[0]);
+  }
+
+  try {
+    const response = await fetch("http://localhost:5000/api/notes", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token },
+      body: formData
+    });
+
+    await response.text();
+
+    if (response.ok) {
+      toast("Note saved successfully", "success");
+      
+      setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
+      return;
+    } else {
+      toast("Failed to save note", "error");
+    }
+  } catch (err) {
+    console.error(err);
+    document.querySelector("button[type=submit]").disabled = false;
+    toast("Server error. Please try again.", "error");
+  }
+});
+</script>
+
+</body>
+</html>

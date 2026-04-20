@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeVault | Secure Notes</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <h2>SafeVault 🔐</h2>
+  <div>
+    <a href="index.html">Login</a>
+    <a href="register.html">Sign Up</a>
+  </div>
+</nav>
+
+<!-- HERO SECTION -->
+<section class="hero">
+  <h1>Secure Your Notes<br>with Encryption</h1>
+  <p>Your personal vault for private thoughts, files & ideas — protected by AES-256.</p>
+  <a href="register.html" class="cta-btn">Get Started Free →</a>
+</section>
+
+<!-- ABOUT -->
+<section class="about reveal">
+  <h2>What is SafeVault?</h2>
+  <p>
+    SafeVault is a secure note-taking platform built for privacy. With military-grade encryption
+    and file support, your sensitive information stays safe, organized, and accessible only to you.
+  </p>
+</section>
+
+<!-- FEATURES -->
+<section class="features reveal">
+  <div class="feature-card">
+    <h3>🔐 Encryption</h3>
+    <p>AES-256 & Caesar cipher encryption keeps your notes locked away from prying eyes.</p>
+  </div>
+  <div class="feature-card">
+    <h3>📂 File Upload</h3>
+    <p>Attach and store files securely alongside your encrypted notes in one place.</p>
+  </div>
+  <div class="feature-card">
+    <h3>⚡ Fast & Simple</h3>
+    <p>Clean, distraction-free interface with instant search and category filtering.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  © 2026 SafeVault. All rights reserved. Built with 🔐
+</footer>
+
+<script>
+  const reveals = document.querySelectorAll(".reveal");
+
+  function revealOnScroll() {
+    const windowHeight = window.innerHeight;
+    reveals.forEach((section) => {
+      const elementTop = section.getBoundingClientRect().top;
+      if (elementTop < windowHeight - 80) {
+        section.classList.add("active");
+      }
+    });
+  }
+
+  window.addEventListener("scroll", revealOnScroll);
+  revealOnScroll();
+</script>
+
+</body>
+</html>

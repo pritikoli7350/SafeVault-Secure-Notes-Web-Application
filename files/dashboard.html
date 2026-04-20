@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeVault | Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    /* Toast */
+    #toast-container { position:fixed;top:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:10px; }
+    .toast-msg { padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transform:translateX(40px);transition:all 0.3s ease;min-width:220px;box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+    .toast-msg.show    { opacity:1;transform:translateX(0); }
+    .toast-msg.success { background:linear-gradient(135deg,#00e09e,#00c87a); }
+    .toast-msg.error   { background:linear-gradient(135deg,#ff4f6a,#cc2244); }
+    .toast-msg.warning { background:linear-gradient(135deg,#f5a623,#e08800); }
+
+    /* Delete modal overlay */
+    .delete-modal-overlay { position:fixed;inset:0;background:rgba(5,8,16,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:9000;opacity:0;pointer-events:none;transition:opacity .25s ease; }
+    .delete-modal-overlay.open { opacity:1;pointer-events:all; }
+
+    /* Delete modal box */
+    .delete-modal { width:400px;max-width:calc(100vw - 40px);background:#0d1221;border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:36px 32px 28px;box-shadow:0 24px 80px rgba(0,0,0,.85);position:relative;overflow:hidden;transform:translateY(20px) scale(.97);opacity:0;transition:transform .35s cubic-bezier(.22,1,.36,1),opacity .3s ease;font-family:'DM Sans',sans-serif; }
+    .delete-modal-overlay.open .delete-modal { transform:translateY(0) scale(1);opacity:1; }
+    .delete-modal::before { content:"";position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,79,106,.55),transparent); }
+
+    /* Icon ring */
+    .delete-icon-ring { width:56px;height:56px;border-radius:50%;background:rgba(255,79,106,.08);border:1px solid rgba(255,79,106,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;position:relative; }
+    .delete-icon-ring::before { content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(255,79,106,.08); }
+    .delete-icon-ring svg { width:22px;height:22px; }
+
+    /* Modal text */
+    .delete-modal h3 { font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#e8eaf6;text-align:center;margin-bottom:8px;letter-spacing:-.01em; }
+    .delete-note-label { font-family:'JetBrains Mono',monospace;font-size:12px;color:#4f8fff;text-align:center;background:rgba(79,143,255,.08);border:1px solid rgba(79,143,255,.2);border-radius:8px;padding:8px 16px;margin:0 auto 14px;display:block;width:100%; }
+    .delete-modal p { font-size:13.5px;color:#7a84a0;text-align:center;line-height:1.6;margin-bottom:24px; }
+    .delete-modal p span { color:#ff4f6a;font-weight:600; }
+
+    /* Buttons */
+    .delete-actions { display:flex;gap:10px; }
+    .delete-cancel-btn { flex:1;padding:12px;background:transparent;border:1px solid rgba(255,255,255,.08);color:#7a84a0;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.01em; }
+    .delete-cancel-btn:hover { border-color:rgba(255,255,255,.18);color:#e8eaf6;background:rgba(255,255,255,.04); }
+    .delete-confirm-btn { flex:1;padding:12px;background:rgba(255,79,106,.12);border:1px solid rgba(255,79,106,.35);color:#ff4f6a;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.01em;position:relative;overflow:hidden; }
+    .delete-confirm-btn:hover { background:rgba(255,79,106,.2);border-color:#ff4f6a;box-shadow:0 0 24px rgba(255,79,106,.25); }
+    .delete-confirm-btn:active { transform:scale(.98); }
+    .delete-confirm-btn.confirming { background:rgba(255,79,106,.9);color:#fff;box-shadow:0 0 30px rgba(255,79,106,.5); }
+    .delete-confirm-btn:disabled { opacity:.6;cursor:not-allowed;transform:none; }
+
+    /* Footer */
+    .delete-footer { margin-top:16px;text-align:center; }
+    .delete-footer span { font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#3d4560; }
+    .delete-footer span b { color:rgba(255,79,106,.5); }
+  </style>
+</head>
+<body>
+
+  <div id="toast-container"></div>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <h2>SafeVault 🔐</h2>
+    <div class="top-actions">
+      <input id="searchInput" class="search-input" type="text" placeholder="Search notes..." />
+      <select id="categoryFilter" class="premium-select">
+        <option value="all">All Categories</option>
+        <option value="personal">Personal</option>
+        <option value="study">Study</option>
+        <option value="work">Work</option>
+        <option value="other">Other</option>
+      </select>
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div class="empty-state animated" style="display:none;">
+    <div class="empty-icon float">🗂️</div>
+    <h3>No notes yet</h3>
+    <p>Create your first encrypted note</p>
+    <a href="add-note.html" class="empty-btn">+ Add Note</a>
+  </div>
+
+  <!-- NOTES GRID -->
+  <div class="notes"></div>
+
+  <!-- FAB -->
+  <a href="add-note.html" class="fab-add-note">+</a>
+
+  <!-- EDIT MODAL -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h3>Edit Note</h3>
+      <input type="text" id="editTitle" placeholder="Note title" />
+      <textarea id="editContent" placeholder="Note content"></textarea>
+      <div class="modal-actions">
+        <button id="saveEditBtn">Save Changes</button>
+        <button id="cancelEditBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRM MODAL -->
+  <div id="deleteModal" class="delete-modal-overlay">
+    <div class="delete-modal">
+      <div class="delete-icon-ring">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ff4f6a" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/>
+          <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+        </svg>
+      </div>
+      <h3>Delete Note</h3>
+      <div class="delete-note-label" id="deleteNoteTitle">Note Title</div>
+      <p>This note will be <span>permanently deleted</span> and cannot be recovered.
+        All encrypted content and attachments will be erased.</p>
+      <div class="delete-actions">
+        <button class="delete-cancel-btn" id="deleteCancelBtn">Cancel</button>
+        <button class="delete-confirm-btn" id="deleteConfirmBtn">Delete Note</button>
+      </div>
+      <div class="delete-footer">
+        <span>Encrypted with <b id="deleteEncLabel">AES-256</b> · will be destroyed</span>
+      </div>
+    </div>
+  </div>
+
+<script src="toast.js"></script>
+<script>
+
+  /* ── Fallback toast (used if toast.js doesn't define window.toast) ── */
+  function showToast(message, type = "success") {
+    if (typeof window.toast === "function") {
+      window.toast(message, type);
+      return;
+    }
+    const container = document.getElementById("toast-container");
+    const el = document.createElement("div");
+    el.className = `toast-msg ${type}`;
+    el.textContent = message;
+    container.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("show")));
+    setTimeout(() => {
+      el.classList.remove("show");
+      setTimeout(() => el.remove(), 350);
+    }, 3000);
+  }
+
+  /* ── Top-level state ── */
+  const token = localStorage.getItem("token");
+  let pendingDeleteId = null;
+
+  /* ── Auth guard ── */
+  if (!token) {
+    showToast("Please login first", "warning");
+    window.location.href = "index.html";
+  }
+
+  /* ── DOM refs ── */
+  const searchInput      = document.getElementById("searchInput");
+  const categoryFilter   = document.getElementById("categoryFilter");
+  const notesContainer   = document.querySelector(".notes");
+  const emptyState       = document.querySelector(".empty-state");
+  const deleteModal      = document.getElementById("deleteModal");
+  const editModal        = document.getElementById("editModal");
+  const editTitleInput   = document.getElementById("editTitle");
+  const editContentInput = document.getElementById("editContent");
+  const deleteConfirmBtn = document.getElementById("deleteConfirmBtn");
+
+  /* ══════════════════════════════════════
+     DELETE MODAL
+  ══════════════════════════════════════ */
+  let confirmClicked = false;
+
+  function closeDeleteModal() {
+    deleteModal.classList.remove("open");
+    pendingDeleteId = null;
+    confirmClicked = false;
+    deleteConfirmBtn.textContent = "Delete Note";
+    deleteConfirmBtn.classList.remove("confirming");
+    deleteConfirmBtn.disabled = false;
+  }
+
+  document.getElementById("deleteCancelBtn").addEventListener("click", closeDeleteModal);
+  deleteModal.addEventListener("click", (e) => { if (e.target === deleteModal) closeDeleteModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDeleteModal(); });
+
+  deleteConfirmBtn.addEventListener("click", async () => {
+    if (!pendingDeleteId) return;
+
+    // First click → turn red and say "Confirm Delete"
+    if (!confirmClicked) {
+      confirmClicked = true;
+      deleteConfirmBtn.textContent = "Confirm Delete";
+      deleteConfirmBtn.classList.add("confirming");
+      // Auto-reset after 3s if user doesn't confirm
+      setTimeout(() => {
+        if (confirmClicked) {
+          confirmClicked = false;
+          deleteConfirmBtn.textContent = "Delete Note";
+          deleteConfirmBtn.classList.remove("confirming");
+        }
+      }, 3000);
+      return;
+    }
+
+    // Second click → actually delete
+    deleteConfirmBtn.disabled = true;
+    deleteConfirmBtn.textContent = "Deleting...";
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/notes/${pendingDeleteId}`, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+      });
+
+      if (res.ok) {
+        closeDeleteModal();
+        showToast("Note deleted successfully", "success");
+        setTimeout(() => location.reload(), 900);
+      } else {
+        showToast("Failed to delete note", "error");
+        deleteConfirmBtn.disabled = false;
+        deleteConfirmBtn.textContent = "Confirm Delete";
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      showToast("Something went wrong", "error");
+      deleteConfirmBtn.disabled = false;
+      deleteConfirmBtn.textContent = "Confirm Delete";
+    }
+  });
+
+  /* ══════════════════════════════════════
+     LOAD NOTES
+  ══════════════════════════════════════ */
+  async function loadNotes() {
+    try {
+      const res = await fetch("http://localhost:5000/api/notes", {
+        headers: { Authorization: "Bearer " + token }
+      });
+
+      if (!res.ok) {
+        showToast("Session expired. Please login again.", "error");
+        window.location.href = "index.html";
+        return;
+      }
+
+      const notes = await res.json();
+      notesContainer.innerHTML = "";
+
+      if (!notes.length) {
+        emptyState.style.display = "block";
+        return;
+      }
+      emptyState.style.display = "none";
+
+      notes.forEach((note, i) => {
+        const card = document.createElement("div");
+        card.classList.add("note", "premium-card");
+        card.style.animationDelay = (i * 0.06) + "s";
+
+        card.innerHTML = `
+          <div class="note-header">
+            <span class="badge badge-${note.category.toLowerCase()}" data-category="${note.category.toLowerCase()}">
+              ${note.category}
+            </span>
+            <span class="badge" style="background:rgba(0,224,158,0.1);color:#00e09e;border:1px solid rgba(0,224,158,0.25);">Encrypted</span>
+          </div>
+          <h3>${note.title}</h3>
+          <div class="note-content-wrapper">
+            <span class="note-content masked" data-full="${note.content}">••••••••••••</span>
+            <span class="toggle-eye">👁</span>
+          </div>
+          ${note.file ? `
+          <div class="note-file">
+            📎 <a href="http://localhost:5000/uploads/${note.file}" target="_blank">${note.originalFileName}</a>
+          </div>` : ""}
+          <div class="note-footer">
+            <span class="method">${note.encryptionType === "AES" ? "AES-256" : "Caesar Cipher"}</span>
+            <span class="date">${new Date(note.createdAt).toLocaleDateString()}</span>
+          </div>
+          <div class="note-actions">
+            <button class="edit-btn" data-id="${note._id}" data-title="${note.title}" data-content="${note.content}">Edit</button>
+            <button class="delete-btn" data-id="${note._id}">Delete</button>
+          </div>
+        `;
+        notesContainer.appendChild(card);
+      });
+
+    } catch (err) {
+      console.error("Fetch error:", err);
+      showToast("Something went wrong", "error");
+    }
+  }
+
+  /* ══════════════════════════════════════
+     SEARCH + FILTER
+  ══════════════════════════════════════ */
+  function filterNotes() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const selectedCategory = categoryFilter.value.toLowerCase();
+
+    document.querySelectorAll(".note").forEach(note => {
+      const title       = note.querySelector("h3").innerText.toLowerCase();
+      const contentEl   = note.querySelector(".note-content");
+      const content     = contentEl ? contentEl.getAttribute("data-full").toLowerCase() : "";
+      const badgeEl     = note.querySelector(".badge[data-category]");
+      const noteCategory = badgeEl ? badgeEl.getAttribute("data-category") : "";
+
+      const matchesSearch   = title.includes(searchTerm) || content.includes(searchTerm);
+      const matchesCategory = selectedCategory === "all" || noteCategory === selectedCategory;
+
+      note.style.display = (matchesSearch && matchesCategory) ? "block" : "none";
+    });
+  }
+
+  searchInput.addEventListener("input", filterNotes);
+  categoryFilter.addEventListener("change", filterNotes);
+
+  /* ══════════════════════════════════════
+     GLOBAL CLICK HANDLER
+  ══════════════════════════════════════ */
+  document.addEventListener("click", (e) => {
+
+    /* TOGGLE EYE */
+    if (e.target.classList.contains("toggle-eye")) {
+      const contentEl = e.target.previousElementSibling;
+      if (contentEl.classList.contains("masked")) {
+        contentEl.textContent = contentEl.getAttribute("data-full");
+        contentEl.classList.replace("masked", "revealed");
+      } else {
+        contentEl.textContent = "••••••••••••";
+        contentEl.classList.replace("revealed", "masked");
+      }
+    }
+
+    /* OPEN DELETE CONFIRM MODAL */
+    if (e.target.classList.contains("delete-btn")) {
+      pendingDeleteId = e.target.getAttribute("data-id");
+
+      const noteEl  = e.target.closest(".note");
+      document.getElementById("deleteNoteTitle").textContent = noteEl.querySelector("h3").innerText;
+      document.getElementById("deleteEncLabel").textContent  = noteEl.querySelector(".method").innerText;
+
+      // Reset button state
+      confirmClicked = false;
+      deleteConfirmBtn.textContent = "Delete Note";
+      deleteConfirmBtn.classList.remove("confirming");
+      deleteConfirmBtn.disabled = false;
+
+      deleteModal.classList.add("open");
+    }
+
+    /* OPEN EDIT MODAL */
+    if (e.target.classList.contains("edit-btn")) {
+      editModal.style.display = "flex";
+      editModal.setAttribute("data-id", e.target.dataset.id);
+      editTitleInput.value   = e.target.dataset.title;
+      editContentInput.value = e.target.dataset.content;
+    }
+  });
+
+  /* ══════════════════════════════════════
+     EDIT MODAL HANDLERS
+  ══════════════════════════════════════ */
+  document.getElementById("saveEditBtn").addEventListener("click", async () => {
+    const noteId         = editModal.getAttribute("data-id");
+    const updatedTitle   = editTitleInput.value.trim();
+    const updatedContent = editContentInput.value.trim();
+
+    if (!updatedTitle || !updatedContent) {
+      showToast("Fields cannot be empty", "warning");
+      return;
+    }
+
+    const res = await fetch(`http://localhost:5000/api/notes/${noteId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ title: updatedTitle, content: updatedContent })
+    });
+
+    if (res.ok) {
+      editModal.style.display = "none";
+      showToast("Note updated successfully", "success");
+      setTimeout(() => location.reload(), 900);
+    } else {
+      showToast("Update failed", "error");
+    }
+  });
+
+  document.getElementById("cancelEditBtn").addEventListener("click", () => {
+    editModal.style.display = "none";
+  });
+
+  /* ══════════════════════════════════════
+     LOGOUT
+  ══════════════════════════════════════ */
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("token");
+    window.location.href = "index.html";
+  });
+
+  /* ── Init ── */
+  loadNotes();
+
+</script> 
+</body>
+</html>

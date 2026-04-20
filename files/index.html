@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeVault | Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>SafeVault 🔐</h1>
+    <p>Your encrypted notes, locked tight.</p>
+
+    <input type="email" id="email" placeholder="Email address">
+    <input type="password" id="password" placeholder="Password">
+
+    <button id="loginBtn" class="primary-btn">Login →</button>
+
+    <p class="link">
+      New here? <a href="register.html">Create account</a>
+    </p>
+    <p class="forgot-link">
+      <a href="forgot-password.html">Forgot password?</a>
+    </p>
+  </div>
+
+<script src="toast.js"></script>  
+<script>
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  if (!email || !password) {
+    toast("Please enter email and password", "warning");
+    return;
+  }
+
+  try {
+    const response = await fetch("http://localhost:5000/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      toast(data.message || "Login failed", "error");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+    window.location.href = "dashboard.html";
+
+  } catch (error) {
+    console.error(error);
+    toast("Server error. Please try again.", "error");
+  }
+});
+</script>
+</body>
+</html>
